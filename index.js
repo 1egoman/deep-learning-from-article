@@ -16,24 +16,25 @@ function power(a, b) {
 
 // A super tiny number used to calculate derivatives.
 const INFINITESIMAL = 0.0001;
+const ASCENDING = 1, DECENDING = -1;
 
 // This function answers this question: when the output increases by one, how do the inputs to the
 // function change?
 //
 // // At point (0, 0), how do a and b change when the result of `(a, b) => a + b` increases by 1?
 // getGradient((a, b) => a + b, [0, 0])
-function getGradient(f, initialValues) {
+function getGradient({func, initialValues, direction}) {
   const outputs = [];
   for (let i = 0; i < initialValues.length; i++) {
     let args = initialValues.slice();
 
     // Call the function with a number of inputs
-    const firstOutput = f.apply(this, args);
+    const firstOutput = func.apply(this, args);
 
     // Increment each input by an infinitesimal amount
     args = args.map((a, ct) => {
       if (ct === i) {
-        return a + INFINITESIMAL;
+        return a + (direction * INFINITESIMAL);
       } else {
         return a;
       }
@@ -41,7 +42,7 @@ function getGradient(f, initialValues) {
 
     // Run again, so we can calculate which way the output of a function "trends" when given known
     // input data.
-    const secondOutput = f.apply(this, args);
+    const secondOutput = func.apply(this, args);
 
     // Calculate the slope of the change from firstInput => secondOutput
     // This is calc. But really, think of it as the slope equasion, change in y over change in x:
@@ -62,10 +63,10 @@ function prettyMuchEqual(a, b) {
 
 const stepSize = 0.01;
 
-const target = 2;
-let a = 2;
-let b = 2;
-let c = 3;
+const target = 3;
+let a = 1;
+let b = 1;
+let c = 1;
 console.log("* Target is", target);
 
 let slopeOfA, slopeOfB, slopeOfC;
@@ -78,9 +79,21 @@ while (true) {
   console.log("* Current output is", output);
 
   // Calculate which way the inputs should move (and by how much) to increase the output
-  const addSlopes = getGradient(add, [power(a, b), divide(c, 2)]);
-  const powerSlopes = getGradient(power, [a, b]);
-  const divideSlopes = getGradient(divide, [c, 2]);
+  const addSlopes = getGradient({
+    func: add,
+    initialValues: [power(a, b), divide(c, 2)],
+    direction: target > output ? ASCENDING : DECENDING, // Should we move up or down the graph?
+  });
+  const powerSlopes = getGradient({
+    func: power,
+    initialValues: [a, b],
+    direction: target > output ? ASCENDING : DECENDING, // Should we move up or down the graph?
+  });
+  const divideSlopes = getGradient({
+    func: divide,
+    initialValues: [c, 2],
+    direction: target > output ? ASCENDING : DECENDING, // Should we move up or down the graph?
+  });
 
   // Multiply the "tugs" of each input, walking down the tree toward the nodes at the end to calculate
   // the "effective slopes" of each input.
@@ -88,6 +101,7 @@ while (true) {
   slopeOfB = addSlopes[0] * powerSlopes[1];
   slopeOfC = addSlopes[1] * divideSlopes[0];
 
+  // Invert the movment if the target is less than the output.
   if (target < output) {
     slopeOfA *= -1;
     slopeOfB *= -1;
@@ -105,7 +119,7 @@ while (true) {
   console.log("* Result after applying slopes:", result);
 
   if (prettyMuchEqual(result, target)) {
-    console.log("We're at the target!")
+    console.log("We're at the target!");
     break
   }
 }
